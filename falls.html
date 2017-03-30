@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>瀑布流 Ajax</title>
+	<style>
+		* {margin: 0;padding: 0;}
+		#box{
+			position: relative;
+			width:92%;
+			margin: 0 auto;
+		}
+
+		#box .img {
+			width:220px;
+			padding: 5px;
+			border:1px solid #ccc;
+			border-radius: 5px;
+			margin-top:10px;
+		}
+
+		#box .img img {
+			width:220px;
+		}
+
+		#p1{
+			font-size: 12px;
+			color: #f00;
+			position: absolute;
+			top:13px;
+			left:530px;
+		}
+
+
+
+	</style>
+</head>
+<body>
+	<audio src="" controls autoplay loop id="bgm"></audio>
+	<input type="text" id="music"><input type="button" value="点歌" id="btn">
+	<p id="p1">*只支持播放Eason的歌</p>
+	<div id="box">
+		<div class="img"><img src="imgs/1.jpg"></div>
+		<div class="img"><img src="imgs/2.jpg"></div>
+		<div class="img"><img src="imgs/3.jpg"></div>
+		<div class="img"><img src="imgs/4.jpg"></div>
+		<div class="img"><img src="imgs/5.jpg"></div>
+		<div class="img"><img src="imgs/6.jpg"></div>
+		<div class="img"><img src="imgs/7.jpg"></div>
+		<div class="img"><img src="imgs/8.jpg"></div>
+		<div class="img"><img src="imgs/9.jpg"></div>
+	</div>
+	<div id="temp" style="display: none;"></div>
+
+	<script type="text/javascript" src="tools.js"></script>
+	<script>
+		var boxWidth = $('#box').clientWidth,
+			divs = $('.img'),
+			len = divs.length,
+			divWidth = divs[0].offsetWidth,
+			cols = Math.floor(boxWidth/divWidth),
+			space = (boxWidth-divWidth*cols)/(cols+1),
+			position = [];
+
+		divs = Array.from(divs);
+
+		$('#box').innerHTML = '';
+
+		var html = '';
+		for(var i=0;i<cols;i++){
+			html += '<div class="_box" style="width:'+divWidth+'px;margin-left:'+space+'px;display:inline-block;vertical-align:top;" ></div>';
+		}
+
+		function shortest (arr) {
+			var min = arr[0], index = 0;
+			for(var i=1;i<arr.length;i++){
+				if(arr[i]<min){
+					min = arr[i];
+					index = i;
+				}
+			}
+			return index;
+		}
+
+		$('#box').innerHTML += html;
+
+		var _boxes = $('._box');
+		for(var i=0;i<divs.length;i++){
+			if(i<cols){
+				position.push(0);
+			}
+			var currentCol = shortest(position);
+			_boxes[currentCol].appendChild(divs[i]);
+
+			position[currentCol] = _boxes[currentCol].offsetHeight;
+
+		}
+		
+
+		function playsong (name) {
+			
+		
+			ajax({
+				url : 'https://route.showapi.com/213-1?keyword=陈奕迅 '+ name +'&page=1&showapi_appid=33223&showapi_sign=3538728dd3b44e339cef6cf459f97e1a',
+				dataType:"json",
+				data:{
+					
+				},
+				success:function  (data) {
+					
+					var songs = data.showapi_res_body.pagebean.contentlist[0].m4a;
+					$('#bgm').src = songs;
+
+					
+
+					
+
+				}
+			})
+		}	
+
+		playsong('一丝不挂');
+
+		var txt = $('#music');
+		var btn = $('#btn');
+
+		btn.onclick = function  () {
+			var name = txt.value;
+			playsong(name);
+		}
+
+
+		var isLoading = false;
+		window.onscroll = function  () {
+			var _scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+			var index = shortest(position),
+				winHeight = document.documentElement.clientHeight || document.body.clientHeight;
+
+			if(_scrollTop > position[index] - winHeight && !isLoading){
+				isLoading = true;
+				ajax({
+					url : 'http://route.showapi.com/126-2',
+					dataType:"json",
+					data:{
+						showapi_appid:"33223",
+						showapi_sign:"3538728dd3b44e339cef6cf459f97e1a"
+					},
+					success:function  (data) {
+						isLoading = false;
+						
+						var arr = data.showapi_res_body.pagebean.contentlist;
+						var html = '';
+
+						arr.forEach(function  (imgSrc) {
+							html += '<div class="img"><img src="'+imgSrc.avatarUrl+'"></div>';
+						});
+
+						$('#temp').innerHTML = html;
+
+						var divs = $('.img',$('#temp'));
+						divs = Array.from(divs);
+						$('#temp').innerHTML = '';
+
+						divs.forEach(function  (x) {
+							$('img', x)[0].onload = function  () {
+								var currentCol = shortest(position);
+								_boxes[currentCol].appendChild(x);
+								position[currentCol] = _boxes[currentCol].offsetHeight;
+							}
+						})
+
+					}
+				})
+			}
+		}
+
+	</script>
+</body>
+</html>
